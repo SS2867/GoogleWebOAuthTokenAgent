@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google OAuth2 Token Generator</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        input, button { margin: 5px; padding: 8px; width: 95%;}
+        .smallbutton {width: 50px;}
+        .hidden { display: none; }
+        .drop-zone { border: 2px dashed #ccc; padding: 20px; text-align: center; margin: 10px 0; }
+        .drag-over { border-color: #2196F3; }
+        .param-group { margin: 10px 0; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .input-group { display: flex; gap: 5px; align-items: center; }
+        .input-group input { flex: 1; }
+    </style>
+</head>
+<body>
+    <h1>Google OAuth Token Agent</h1>
+    
+    <div class="section hidden" id="tokenSection">
+        <h2>Step 3: 获取令牌</h2>
+        <div class="param-group">
+            <div class="input-group">
+                <input type="password" id="tokenResult" placeholder="授权码">
+                <button type="button" class="toggle-visibility smallbutton">显示</button>
+                <button type="button" class="copy-button smallbutton">复制</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Step 1: 提供客户端凭证和授权参数 <button type="button" id="toggleParamsBtn">展开参数</button></h2>
+        <div class="drop-zone" id="dropZone">
+            拖放client_secrets.json文件到这里或点击选择文件
+            <input type="file" id="fileInput" accept=".json" hidden>
+        </div>
+        <div id="manualInput" class="hidden">
+            <div class="param-group">
+                <label>Client ID:</label>
+                <input type="text" id="client_id" placeholder="Client ID">
+            </div>
+            <div class="param-group">
+                <label>Client Secret:</label>
+                <div class="input-group">
+                    <input type="password" id="client_secret" placeholder="Client Secret">
+                    <button type="button" class="toggle-password smallbutton">显示</button>
+                </div>
+            </div>
+            <div class="param-group">
+                <label>Auth URI:</label>
+                <input type="text" id="auth_uri" placeholder="Auth URI" value="https://accounts.google.com/o/oauth2/auth">
+            </div>
+            <div class="param-group">
+                <label>Token URI:</label>
+                <input type="text" id="token_uri" placeholder="Token URI" value="https://oauth2.googleapis.com/token">
+            </div>
+            <div class="param-group">
+                <label>Redirect URI:</label>
+                <input type="text" id="redirect_uri" list="redirect_uris" placeholder="Redirect URI">
+                <datalist id="redirect_uris"></datalist>
+            </div>
+            <div class="param-group">
+                <label>Scope:</label>
+                <input type="text" id="scope" placeholder="Scope" value="https://www.googleapis.com/auth/drive">
+            </div>
+            <div class="param-group">
+                <label>Access Type:</label>
+                <input type="text" id="access_type" placeholder="Access Type" value="offline">
+            </div>
+            <div class="param-group">
+                <label>Prompt:</label>
+                <input type="text" id="prompt" placeholder="Prompt" value="consent">
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Step 2: 获取授权码</h2>
+        <button id="authButton" disabled onclick="startAuth()">生成授权URL</button>
+        <p id="authStatus"></p>
+    </div>
+
+    <script>
+        let autoRedirectTriggered = false;
+
+        // 初始化展开/折叠按钮
+        const toggleParamsBtn = document.getElementById('toggleParamsBtn');
+        const manualInput = document.getElementById('manualInput');
+        toggleParamsBtn.addEventListener('click', () => {
+            manualInput.classList.toggle('hidden');
+            toggleParamsBtn.textContent = manualInput.classList.contains('hidden') ? '展开参数' : '折叠参数';
+        });
+
+        const inputFields = ['client_id', 'client_secret', 'auth_uri', 'token_uri', 'redirect_uri', 'scope', 'access_type', 'prompt'];
+
+        // 文件拖放处理
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            handleFile(e.dataTransfer.files[0]);
+        });
+
+        fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
+
+        function handleFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const config = JSON.parse(e.target.result);
+                    const webConfig = config.web || config.installed || {};
+                    const datalist = document.getElementById('redirect_uris');
+
+                    datalist.innerHTML = (webConfig.redirect_uris || [])
+                        .map(uri => `<option value="${uri}">`)
+                        .join('');
+
+                    document.getElementById('client_id').value = webConfig.client_id || '';
+                    document.getElementById('client_secret').value = webConfig.client_secret || '';
+                    document.getElementById('auth_uri').value = webConfig.auth_uri || 'https://accounts.google.com/o/oauth2/auth';
+                    document.getElementById('token_uri').value = webConfig.token_uri || 'https://oauth2.googleapis.com/token';
+                    document.getElementById('redirect_uri').value = (webConfig.redirect_uris && webConfig.redirect_uris[0]) || '';
+                    manualInput.classList.remove('hidden');
+                    checkCredentials();
+                } catch (error) {
+                    alert('无效的JSON文件');
+                    throw error;
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // 授权流程
+        function checkCredentials() {
+            const requiredFields = [
+                document.getElementById('client_id').value,
+                document.getElementById('client_secret').value,
+                document.getElementById('auth_uri').value,
+                document.getElementById('redirect_uri').value
+            ];
+            const isEnabled = requiredFields.every(field => field.trim() !== '');
+            document.getElementById('authButton').disabled = !isEnabled;
+            return isEnabled
+
+            
+        }
+
+        function startAuth() {
+            const params = {
+                client_id: document.getElementById('client_id').value,
+                redirect_uri: document.getElementById('redirect_uri').value,
+                auth_uri: document.getElementById('auth_uri').value,
+                scope: document.getElementById('scope').value,
+                access_type: document.getElementById('access_type').value,
+                prompt: document.getElementById('prompt').value
+            };
+
+            const authUrl = new URL(params.auth_uri);
+            authUrl.searchParams.set('client_id', params.client_id);
+            authUrl.searchParams.set('redirect_uri', params.redirect_uri);
+            authUrl.searchParams.set('response_type', 'code');
+            authUrl.searchParams.set('scope', params.scope);
+            authUrl.searchParams.set('access_type', params.access_type);
+            authUrl.searchParams.set('prompt', params.prompt);
+
+            window.open(authUrl);
+        }
+
+        function displayCode(code) {
+            document.getElementById('tokenSection').classList.remove('hidden');
+            document.getElementById('tokenResult').value = code;
+        }
+
+
+        // 切换密码可见性
+        document.querySelectorAll('.toggle-password, .toggle-visibility').forEach(button => {
+            button.addEventListener('click', function() {
+                const input = this.parentElement.querySelector('input');
+                const isPassword = input.type === 'password';
+                input.type = isPassword ? 'text' : 'password';
+                this.textContent = isPassword ? '隐藏' : '显示';
+            });
+        });
+
+        // 复制功能
+        document.querySelectorAll('.copy-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const input = this.parentElement.querySelector('input');
+                navigator.clipboard.writeText(input.value)
+                    .catch(err => alert('复制失败: ' + err));
+            });
+        });
+
+        // 输入框事件绑定
+        const urlParams = new URLSearchParams(window.location.search);
+        inputFields.forEach(param => {
+            const element = document.getElementById(param);
+            if (element && urlParams.has(param)) {
+                element.value = urlParams.get(param);
+            }
+        });
+
+        inputFields.forEach(field => {
+            document.getElementById(field).addEventListener('input', checkCredentials);
+        });
+        
+        
+        // 处理授权码回传
+        if(urlParams.get("code")){ 
+            displayCode(urlParams.get("code")); 
+        }
+
+        // 自动跳转逻辑
+        if (!urlParams.get("code") && urlParams.get('autoRedirectToAuth') === '1' && checkCredentials() && !autoRedirectTriggered) {
+            autoRedirectTriggered = true;
+            startAuth();
+        }
+    </script>
+</body>
+</html>
