@@ -7,8 +7,9 @@
     <style>
         body { font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; }
         .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
-        input, button { margin: 5px; padding: 8px; width: 95%;}
-        .smallbutton {width: 50px;}
+        input, button { margin: 5px; padding: 8px; width: 95%; background-color: inherit; background: #ffffff;}
+        button:active {background: #ddd;}
+        .smallbutton {width: 50px}
         .hidden { display: none; }
         .drop-zone { border: 2px dashed #ccc; padding: 20px; text-align: center; margin: 10px 0; }
         .drag-over { border-color: #2196F3; }
@@ -16,83 +17,213 @@
         label { display: block; margin-bottom: 5px; font-weight: bold; }
         .input-group { display: flex; gap: 5px; align-items: center; }
         .input-group input { flex: 1; }
+        .blink-emphasize{animation: blink 1s;}
+        .blink-emphasize-infinite{animation: blink 1s infinite;}
+        .blink-emphasize-infinite:active {animation: none;}
+        @keyframes blink {
+            0%, 100%{background: #ffffff; background-color: #ffffff;}
+            50% {background: #ffd500 ;background-color: #ffd500;}
+        }
+        #languageToggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 5px 10px;
+        }
     </style>
 </head>
 <body>
-    <h1>Google OAuth Token Agent</h1>
+    <button id="languageToggle" class="smallbutton" onclick="toggleLanguage()">Eng</button>
+    <h1 data-i18n="title">Google OAuth Token Agent</h1>
     
     <div class="section hidden" id="tokenSection">
-        <h2>Step 3: 获取令牌</h2>
+        <h2 data-i18n="step3">Step 3: 获取令牌</h2>
         <div class="param-group">
             <div class="input-group">
-                <input type="password" id="tokenResult" placeholder="授权码">
-                <button type="button" class="toggle-visibility smallbutton">显示</button>
-                <button type="button" class="copy-button smallbutton">复制</button>
+                <input type="password" id="tokenResult" data-i18n-placeholder="tokenPlaceholder" placeholder="授权码">
+                <button type="button" class="toggle-visibility smallbutton" data-i18n="show">显示</button>
+                <button type="button" class="copy-button smallbutton blink-emphasize-infinite" data-i18n="copy">复制</button>
             </div>
         </div>
     </div>
 
     <div class="section">
-        <h2>Step 1: 提供客户端凭证和授权参数 <button type="button" id="toggleParamsBtn">展开参数</button></h2>
+        <h2>
+            <span data-i18n="step1">Step 1: 提供客户端凭证和授权参数</span>
+            <button type="button" id="toggleParamsBtn">展开参数</button>
+        </h2>
         <div class="drop-zone" id="dropZone">
-            拖放client_secrets.json文件到这里或点击选择文件
+            <span data-i18n="dropZoneText">拖放client_secrets.json文件到这里或点击选择文件</span>
             <input type="file" id="fileInput" accept=".json" hidden>
         </div>
         <div id="manualInput" class="hidden">
             <div class="param-group">
-                <label>Client ID:</label>
-                <input type="text" id="client_id" placeholder="Client ID">
+                <label data-i18n="clientIdLabel">Client ID:</label>
+                <input type="text" id="client_id" data-i18n-placeholder="clientIdPlaceholder" placeholder="Client ID">
             </div>
             <div class="param-group">
-                <label>Client Secret:</label>
+                <label data-i18n="clientSecretLabel">Client Secret:</label>
                 <div class="input-group">
-                    <input type="password" id="client_secret" placeholder="Client Secret">
-                    <button type="button" class="toggle-password smallbutton">显示</button>
+                    <input type="password" id="client_secret" data-i18n-placeholder="clientSecretPlaceholder" placeholder="Client Secret">
+                    <button type="button" class="toggle-password smallbutton" data-i18n="show">显示</button>
                 </div>
             </div>
             <div class="param-group">
-                <label>Auth URI:</label>
-                <input type="text" id="auth_uri" placeholder="Auth URI" value="https://accounts.google.com/o/oauth2/auth">
+                <label data-i18n="authUriLabel">Auth URI:</label>
+                <input type="text" id="auth_uri" data-i18n-placeholder="authUriPlaceholder" placeholder="Auth URI" value="https://accounts.google.com/o/oauth2/auth">
             </div>
             <div class="param-group">
-                <label>Token URI:</label>
-                <input type="text" id="token_uri" placeholder="Token URI" value="https://oauth2.googleapis.com/token">
+                <label data-i18n="tokenUriLabel">Token URI:</label>
+                <input type="text" id="token_uri" data-i18n-placeholder="tokenUriPlaceholder" placeholder="Token URI" value="https://oauth2.googleapis.com/token">
             </div>
             <div class="param-group">
-                <label>Redirect URI:</label>
-                <input type="text" id="redirect_uri" list="redirect_uris" placeholder="Redirect URI">
+                <label data-i18n="redirectUriLabel">Redirect URI:</label>
+                <input type="text" id="redirect_uri" data-i18n-placeholder="redirectUriPlaceholder" list="redirect_uris" placeholder="Redirect URI">
                 <datalist id="redirect_uris"></datalist>
             </div>
             <div class="param-group">
-                <label>Scope:</label>
-                <input type="text" id="scope" placeholder="Scope" value="https://www.googleapis.com/auth/drive">
+                <label data-i18n="scopeLabel">Scope:</label>
+                <input type="text" id="scope" data-i18n-placeholder="scopePlaceholder" placeholder="Scope" value="https://www.googleapis.com/auth/drive">
             </div>
             <div class="param-group">
-                <label>Access Type:</label>
-                <input type="text" id="access_type" placeholder="Access Type" value="offline">
+                <label data-i18n="accessTypeLabel">Access Type:</label>
+                <input type="text" id="access_type" data-i18n-placeholder="accessTypePlaceholder" placeholder="Access Type" value="offline">
             </div>
             <div class="param-group">
-                <label>Prompt:</label>
-                <input type="text" id="prompt" placeholder="Prompt" value="consent">
+                <label data-i18n="promptLabel">Prompt:</label>
+                <input type="text" id="prompt" data-i18n-placeholder="promptPlaceholder" placeholder="Prompt" value="consent">
             </div>
         </div>
     </div>
 
     <div class="section">
-        <h2>Step 2: 获取授权码</h2>
-        <button id="authButton" disabled onclick="startAuth()">生成授权URL</button>
+        <h2 data-i18n="step2">Step 2: 获取授权码</h2>
+        <button id="authButton" disabled onclick="startAuth()" data-i18n="generateAuthUrl">生成授权URL</button>
         <p id="authStatus"></p>
     </div>
 
     <script>
         let autoRedirectTriggered = false;
+        let currentLang = 'zh';
+
+        const translations = {
+            en: {
+                title: 'Google OAuth Token Agent',
+                step1: 'Step 1: Provide Client Credentials',
+                step2: 'Step 2: Get Authorization Code',
+                step3: 'Step 3: Retrieve Token',
+                toggleParamsExpand: 'Expand Parameters',
+                toggleParamsCollapse: 'Collapse Parameters',
+                dropZoneText: 'Drag and drop client_secrets.json here or click to select',
+                clientIdLabel: 'Client ID:',
+                clientSecretLabel: 'Client Secret:',
+                authUriLabel: 'Auth URI:',
+                tokenUriLabel: 'Token URI:',
+                redirectUriLabel: 'Redirect URI:',
+                scopeLabel: 'Scope:',
+                accessTypeLabel: 'Access Type:',
+                promptLabel: 'Prompt:',
+                generateAuthUrl: 'Go to Auth URL',
+                tokenPlaceholder: 'Authorization Code',
+                clientIdPlaceholder: 'Client ID',
+                clientSecretPlaceholder: 'Client Secret',
+                authUriPlaceholder: 'Auth URI',
+                tokenUriPlaceholder: 'Token URI',
+                redirectUriPlaceholder: 'Redirect URI',
+                scopePlaceholder: 'Scope',
+                accessTypePlaceholder: 'Access Type',
+                promptPlaceholder: 'Prompt',
+                show: 'Show',
+                hide: 'Hide',
+                copy: 'Copy',
+                copyFailed: 'Copy failed',
+                invalidJson: 'Invalid JSON file'
+            },
+            zh: {
+                title: 'Google OAuth 令牌获取器',
+                step1: 'Step 1: 提供客户端凭证',
+                step2: 'Step 2: 获取授权码',
+                step3: 'Step 3: 获取令牌',
+                toggleParamsExpand: '展开参数',
+                toggleParamsCollapse: '折叠参数',
+                dropZoneText: '拖放client_secrets.json文件到这里或点击选择',
+                clientIdLabel: '客户端ID:',
+                clientSecretLabel: '客户端密钥:',
+                authUriLabel: '认证URI:',
+                tokenUriLabel: '令牌URI:',
+                redirectUriLabel: '重定向URI:',
+                scopeLabel: '授权范围:',
+                accessTypeLabel: '访问类型:',
+                promptLabel: '提示类型:',
+                generateAuthUrl: '前往授权URL',
+                tokenPlaceholder: '授权码',
+                clientIdPlaceholder: '客户端ID',
+                clientSecretPlaceholder: '客户端密钥',
+                authUriPlaceholder: '认证URI',
+                tokenUriPlaceholder: '令牌URI',
+                redirectUriPlaceholder: '重定向URI',
+                scopePlaceholder: '授权范围',
+                accessTypePlaceholder: '访问类型',
+                promptPlaceholder: '提示类型',
+                show: '显示',
+                hide: '隐藏',
+                copy: '复制',
+                copyFailed: '复制失败',
+                invalidJson: '无效的JSON文件'
+            }
+        };
+
+        // 初始化语言设置
+        const savedLang = localStorage.getItem('preferredLang');
+        if (savedLang) currentLang = savedLang;
+        else if (navigator.language.startsWith('zh')) currentLang = 'zh';
+        else currentLang = 'en';
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'en' ? 'zh' : 'en';
+            switchLanguage(currentLang);
+        }
+
+        function switchLanguage(lang) {
+            // 更新文本内容
+            document.querySelectorAll('[data-i18n]').forEach(element => {
+                const key = element.getAttribute('data-i18n');
+                element.textContent = translations[lang][key];
+            });
+
+            // 更新placeholder
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(input => {
+                const key = input.getAttribute('data-i18n-placeholder');
+                input.placeholder = translations[lang][key];
+            });
+
+            // 更新按钮状态
+            document.querySelectorAll('.toggle-password, .toggle-visibility').forEach(button => {
+                const input = button.parentElement.querySelector('input');
+                const isPassword = input.type === 'password';
+                button.textContent = isPassword ? translations[lang].show : translations[lang].hide;
+            });
+
+            // 更新参数切换按钮
+            updateToggleParamsButtonText();
+
+            // 保存设置
+            localStorage.setItem('preferredLang', lang);
+            document.getElementById('languageToggle').textContent = lang === 'en' ? '中文' : 'Eng';
+        }
 
         // 初始化展开/折叠按钮
         const toggleParamsBtn = document.getElementById('toggleParamsBtn');
         const manualInput = document.getElementById('manualInput');
+        function updateToggleParamsButtonText() {
+            const isCollapsed = manualInput.classList.contains('hidden');
+            const key = isCollapsed ? 'toggleParamsExpand' : 'toggleParamsCollapse';
+            toggleParamsBtn.textContent = translations[currentLang][key];
+        }
+
         toggleParamsBtn.addEventListener('click', () => {
             manualInput.classList.toggle('hidden');
-            toggleParamsBtn.textContent = manualInput.classList.contains('hidden') ? '展开参数' : '折叠参数';
+            updateToggleParamsButtonText();
         });
 
         const inputFields = ['client_id', 'client_secret', 'auth_uri', 'token_uri', 'redirect_uri', 'scope', 'access_type', 'prompt'];
@@ -135,7 +266,7 @@
                     manualInput.classList.remove('hidden');
                     checkCredentials();
                 } catch (error) {
-                    alert('无效的JSON文件');
+                    alert(translations[currentLang].invalidJson);
                     throw error;
                 }
             };
@@ -175,12 +306,14 @@
             authUrl.searchParams.set('access_type', params.access_type);
             authUrl.searchParams.set('prompt', params.prompt);
 
-            window.open(authUrl);
+            window.location.href = authUrl; //window.open(authUrl);
         }
 
         function displayCode(code) {
+            document.getElementById('tokenSection').classList.remove('blink-emphasize');
             document.getElementById('tokenSection').classList.remove('hidden');
             document.getElementById('tokenResult').value = code;
+            document.getElementById('tokenSection').classList.add('blink-emphasize');
         }
 
 
@@ -190,7 +323,7 @@
                 const input = this.parentElement.querySelector('input');
                 const isPassword = input.type === 'password';
                 input.type = isPassword ? 'text' : 'password';
-                this.textContent = isPassword ? '隐藏' : '显示';
+                this.textContent = isPassword ? translations[currentLang].hide : translations[currentLang].show;
             });
         });
 
@@ -199,7 +332,7 @@
             button.addEventListener('click', function() {
                 const input = this.parentElement.querySelector('input');
                 navigator.clipboard.writeText(input.value)
-                    .catch(err => alert('复制失败: ' + err));
+                    .catch(err => {alert(translations[currentLang].copyFailed +': ' + err); throw err;});
             });
         });
 
@@ -216,6 +349,7 @@
             document.getElementById(field).addEventListener('input', checkCredentials);
         });
         
+        switchLanguage(currentLang);
         
         // 处理授权码回传
         if(urlParams.get("code")){ 
