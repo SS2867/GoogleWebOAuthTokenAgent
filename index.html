@@ -6,6 +6,9 @@
     <title>Google OAuth2 Token Generator</title>
     <style>
         body { font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; }
+        .warning { border: 3px solid rgb(255, 174, 0) !important; }
+        .invalid { border: 3px solid red !important; }
+        .warning-box {padding: 15px; background-color: #ffe6e6; border: 2px solid #ff0000; color: #ff0000;}
         .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
         input, button { margin: 5px; padding: 8px; width: 95%; background-color: inherit; background: #ffffff;}
         button:active {background: #ddd;}
@@ -33,6 +36,9 @@
     </style>
 </head>
 <body>
+    <div class="warning-box" data-i18n="securityWarning">
+        请确保仅在可信环境使用，妥善保管凭证信息。使用本工具产生的所有风险由使用者自行承担。
+    </div>
     <button id="languageToggle" class="smallbutton" onclick="toggleLanguage()">Eng</button>
     <h1 data-i18n="title">Google OAuth Token Agent</h1>
     
@@ -137,7 +143,11 @@
                 hide: 'Hide',
                 copy: 'Copy',
                 copyFailed: 'Copy failed',
-                invalidJson: 'Invalid JSON file'
+                invalidJson: 'Invalid JSON file',
+                securityWarning: 'Use only in trusted environments. You are fully responsible for any risks.',
+                validationError: 'Please check the required fields with problems (highlighted in red)',
+                redirectUriMismatch: 'The redirect URI does not match the current domain name, your login info may be leaked to others! \nDo you still want to use this redirect URI?',
+                confirmAuth: 'You are about to be redirected to Google Sign-in. Do you want to continue?',
             },
             zh: {
                 title: 'Google OAuth 令牌获取器',
@@ -169,7 +179,11 @@
                 hide: '隐藏',
                 copy: '复制',
                 copyFailed: '复制失败',
-                invalidJson: '无效的JSON文件'
+                invalidJson: '无效的JSON文件',
+                securityWarning: '请仅在可信环境中使用，妥善保管凭证信息。使用本工具产生的所有风险由使用者自行承担。',
+                validationError: '请检查出现问题的必填字段（标红）',
+                redirectUriMismatch: '重定向URI与当前域名不匹配，你的登录信息将可能被其他人利用！\n仍要使用这个重定向URI按吗？',
+                confirmAuth: '即将前往Google登录，请确认是否继续？',
             }
         };
 
@@ -273,22 +287,58 @@
             reader.readAsText(file);
         }
 
+        function validateRedirectUri(inputUri) {
+            try {
+                const current = new URL(window.location.href);
+                const redirect = new URL(inputUri);
+                return current.origin === redirect.origin;
+            } catch(e) {
+                return false;
+            }
+        }
+
+        let confirmRedirectUriMismatch = false;
         // 授权流程
         function checkCredentials() {
-            const requiredFields = [
-                document.getElementById('client_id').value,
-                document.getElementById('client_secret').value,
-                document.getElementById('auth_uri').value,
-                document.getElementById('redirect_uri').value
-            ];
-            const isEnabled = requiredFields.every(field => field.trim() !== '');
-            document.getElementById('authButton').disabled = !isEnabled;
-            return isEnabled
+            let isValid = true;
+            const errors = [];
+            
+            // 清除所有错误状态
+            inputFields.forEach(field => {
+                document.getElementById(field).classList.remove('invalid');
+                document.getElementById(field).classList.remove('warning');
+            });
+
+            // 检查必填字段
+            const requiredFields = ['client_id', 'client_secret', 'auth_uri', 'redirect_uri'];
+            requiredFields.forEach(fieldId => {
+                const element = document.getElementById(fieldId);
+                if (!element.value.trim()) {
+                    element.classList.add('invalid');
+                    isValid = false;
+                }
+            });
 
             
+            const redirectUri = document.getElementById('redirect_uri').value;
+            if (redirectUri && !validateRedirectUri(redirectUri)) {
+                document.getElementById("redirect_uri").classList.add("warning");
+                if(!confirmRedirectUriMismatch){
+                    confirmRedirectUriMismatch = window.confirm(translations[currentLang].redirectUriMismatch);}
+                document.getElementById('redirect_uri').classList.toggle('invalid', !confirmRedirectUriMismatch);
+                isValid = confirmRedirectUriMismatch;
+            }
+
+            document.getElementById('authButton').disabled = !isValid;
+            return isValid;
         }
 
         function startAuth() {
+            if (!checkCredentials()) {
+                alert(translations[currentLang].validationError);
+                return;
+            }
+            
             const params = {
                 client_id: document.getElementById('client_id').value,
                 redirect_uri: document.getElementById('redirect_uri').value,
@@ -337,7 +387,8 @@
             });
         });
 
-        // 输入框事件绑定
+        document.getElementById("redirect_uri").value = new URL(window.location.href).origin
+
         const urlParams = new URLSearchParams(window.location.search);
         inputFields.forEach(param => {
             const element = document.getElementById(param);
@@ -347,7 +398,10 @@
         });
 
         inputFields.forEach(field => {
-            document.getElementById(field).addEventListener('input', checkCredentials);
+            document.getElementById(field).addEventListener('change', ()=>{
+                if(this.id==="redirect_uri"){confirmRedirectUriMismatch = false;}
+                checkCredentials();
+            });
         });
         
         switchLanguage(currentLang);
@@ -359,6 +413,7 @@
 
         // 自动跳转逻辑
         if (!urlParams.get("code") && urlParams.get('autoRedirectToAuth') === '1' && checkCredentials() && !autoRedirectTriggered) {
+            if(!window.confirm(translations[currentLang].confirmAuth)){return;}
             autoRedirectTriggered = true;
             startAuth();
         }
