@@ -387,7 +387,7 @@
             });
         });
 
-        document.getElementById("redirect_uri").value = new URL(window.location.href).origin
+        document.getElementById("redirect_uri").value = new URL(window.location.href).origin + new URL(window.location.href).pathname
 
         const urlParams = new URLSearchParams(window.location.search);
         inputFields.forEach(param => {
