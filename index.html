@@ -413,9 +413,10 @@
 
         // 自动跳转逻辑
         if (!urlParams.get("code") && urlParams.get('autoRedirectToAuth') === '1' && checkCredentials() && !autoRedirectTriggered) {
-            if(!window.confirm(translations[currentLang].confirmAuth)){return;}
-            autoRedirectTriggered = true;
-            startAuth();
+            if(window.confirm(translations[currentLang].confirmAuth)){
+                autoRedirectTriggered = true;
+                startAuth();
+            }
         }
     </script>
 </body>
