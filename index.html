@@ -40,7 +40,7 @@
         <h2 data-i18n="step3">Step 3: 获取令牌</h2>
         <div class="param-group">
             <div class="input-group">
-                <input type="password" id="tokenResult" data-i18n-placeholder="tokenPlaceholder" placeholder="授权码">
+                <input type="password" id="tokenResult" data-i18n-placeholder="tokenPlaceholder" readonly placeholder="授权码">
                 <button type="button" class="toggle-visibility smallbutton" data-i18n="show">显示</button>
                 <button type="button" class="copy-button smallbutton blink-emphasize-infinite" data-i18n="copy">复制</button>
             </div>
@@ -332,6 +332,7 @@
             button.addEventListener('click', function() {
                 const input = this.parentElement.querySelector('input');
                 navigator.clipboard.writeText(input.value)
+                    .then(()=>{this.classList.remove("blink-emphasize-infinite")})
                     .catch(err => {alert(translations[currentLang].copyFailed +': ' + err); throw err;});
             });
         });
